@@ -10,6 +10,8 @@ from email.utils import formatdate, make_msgid
 from gnews import GNews
 from datetime import datetime
 from typing import List, Dict, Any
+from urllib.parse import urlparse
+import requests
 
 # =========================
 # 1) CONFIGURACIÓN (ENV)
@@ -53,6 +55,72 @@ PALABRAS_PROHIBIDAS = [
     "fichaje", "entrenador", "baloncesto", "tenis", "nadal", "alonso",
     "sucesos", "accidente", "lotería"
 ]
+
+# =========================
+# 4b) LISTA BLANCA DE MEDIOS (DOMINIOS)
+# =========================
+ALLOWED_DOMAINS = {
+    # Generalistas
+    "elpais.com",
+    "elmundo.es",
+    "abc.es",
+    "20minutos.es",
+    "eldiario.es",
+    "elespanol.com",
+    "larazon.es",
+    "lavanguardia.com",
+
+    # Económicos / empresa
+    "expansion.com",
+    "cincodias.elpais.com",
+    "cincodias.com",
+    "eleconomista.es",
+    "invertia.com",
+    "elconfidencial.com",
+    "vozpopuli.com",
+    "capitalmadrid.com",
+
+    # Internacionales
+    "reuters.com",
+    "bloomberg.com",
+    "ft.com",
+    "wsj.com",
+}
+
+# Sesión HTTP para resolver redirects SOLO cuando el link sea de Google News
+_HTTP = requests.Session()
+_HTTP.headers.update({"User-Agent": "Mozilla/5.0"})
+
+
+def _netloc(url: str) -> str:
+    netloc = urlparse(url).netloc.lower()
+    if netloc.startswith("www."):
+        netloc = netloc[4:]
+    return netloc
+
+
+def resolve_final_url(url: str, timeout: int = 8) -> str:
+    """
+    Resuelve redirects SOLO cuando el link sea de Google News (news.google.com),
+    para obtener el dominio real del medio.
+    """
+    try:
+        host = _netloc(url)
+        if "news.google.com" not in host:
+            return url
+        r = _HTTP.get(url, allow_redirects=True, timeout=timeout)
+        return r.url or url
+    except Exception:
+        return url
+
+
+def is_allowed_url(url: str) -> bool:
+    final_url = resolve_final_url(url)
+    dom = _netloc(final_url)
+    return any(dom == d or dom.endswith("." + d) for d in ALLOWED_DOMAINS)
+
+
+
 
 EMAIL_REGEX = re.compile(r"^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$", re.IGNORECASE)
 
@@ -238,6 +306,7 @@ if __name__ == "__main__":
 
     datos = buscar_y_filtrar()
     enviar_correo(datos, recipients)
+
 
 
 
