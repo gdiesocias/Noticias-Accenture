@@ -245,7 +245,7 @@ def buscar_y_filtrar() -> List[Dict[str, Any]]:
 
             for articulo in resultados:
                 titulo = (articulo.get("title") or "").strip()
-                url = get_article_url(articulo)
+                url = (articulo.get("url") or articulo.get("link") or "").strip()
                 descripcion = articulo.get("description") or ""
 
                 if not titulo or not url:
@@ -385,5 +385,6 @@ if __name__ == "__main__":
 
     datos = buscar_y_filtrar()
     enviar_correo(datos, recipients)
+
 
 
