@@ -386,3 +386,4 @@ if __name__ == "__main__":
     datos = buscar_y_filtrar()
     enviar_correo(datos, recipients)
 
+
