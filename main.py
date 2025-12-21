@@ -34,16 +34,15 @@ CLIENTES = [
 # =========================
 # 3) PALABRAS CLAVE
 # =========================
-KEYWORDS_EXACTAS = ["IA", "ESG", "CX", "BPM", "GenAI", "IoT", "PwC", "EY", "KPMG", "BCG", "IBM", "CEO", "OPA", "CIO", "CTO"]
+KEYWORDS_EXACTAS = ["IA", "ESG", "GenAI", "IoT", "PwC", "EY", "KPMG", "BCG", "IBM","NTT", "CEO", "CDAIO","CHRO","CFO", "CIO", "CTO"]
 
 KEYWORDS_GENERALES = [
     "inteligencia artificial", "big data", "alianza", "ecosistema",
-    "estrategia", "organización", "organigrama", "talento", "transformación",
-    "digitalización", "innovación", "automatización", "eficiencia",
+    "estrategia", "talento", "digitalización", "innovación", "automatización", "eficiencia",
     "machine learning", "cloud", "ciberseguridad", "blockchain",
     "fintech", "insurtech", "renovables", "sostenibilidad",
     "regulación", "compliance", "transición energética",
-    "reskilling", "híbrido", "futuro del trabajo", "resultados", "beneficio"
+    "reskilling", "futuro del trabajo", "resultados", "beneficio"
 ]
 
 # =========================
@@ -239,5 +238,6 @@ if __name__ == "__main__":
 
     datos = buscar_y_filtrar()
     enviar_correo(datos, recipients)
+
 
 
