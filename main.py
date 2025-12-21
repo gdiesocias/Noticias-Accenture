@@ -10,8 +10,6 @@ from email.utils import formatdate, make_msgid
 from gnews import GNews
 from datetime import datetime
 from typing import List, Dict, Any
-from urllib.parse import urlparse
-import requests
 
 # =========================
 # 1) CONFIGURACIÓN (ENV)
@@ -30,21 +28,22 @@ SMTP_TIMEOUT = int(os.environ.get("SMTP_TIMEOUT", "20").strip() or 20)
 CLIENTES = [
     "Banco Sabadell", "BBVA", "CaixaBank", "Iberdrola", "Airbus",
     "Repsol", "Banco Santander", "Amadeus", "EDP", "Masorange",
-    "El Corte Inglés", "Endesa", "Mapfre", "Telefónica", "Acciona", "Inditex"
+    "El Corte Inglés", "Endesa", "Mapfre", "Telefónica"
 ]
 
 # =========================
 # 3) PALABRAS CLAVE
 # =========================
-KEYWORDS_EXACTAS = ["IA", "ESG", "GenAI", "IoT", "OPA", "PwC", "EY", "KPMG", "BCG", "IBM","NTT", "CEO", "CDAIO","CHRO","CFO", "CIO", "CTO"]
+KEYWORDS_EXACTAS = ["IA", "ESG", "CX", "BPM", "GenAI", "IoT", "PwC", "EY", "KPMG", "BCG", "IBM", "CEO", "OPA", "CIO", "CTO"]
 
 KEYWORDS_GENERALES = [
     "inteligencia artificial", "big data", "alianza", "ecosistema",
-    "estrategia", "talento", "digitalización", "innovación", "automatización", "eficiencia",
+    "estrategia", "organización", "organigrama", "talento", "transformación",
+    "digitalización", "innovación", "automatización", "eficiencia",
     "machine learning", "cloud", "ciberseguridad", "blockchain",
     "fintech", "insurtech", "renovables", "sostenibilidad",
     "regulación", "compliance", "transición energética",
-    "reskilling", "futuro del trabajo", "beneficio"
+    "reskilling", "híbrido", "futuro del trabajo", "resultados", "beneficio"
 ]
 
 # =========================
@@ -55,72 +54,6 @@ PALABRAS_PROHIBIDAS = [
     "fichaje", "entrenador", "baloncesto", "tenis", "nadal", "alonso",
     "sucesos", "accidente", "lotería"
 ]
-
-# =========================
-# 4b) LISTA BLANCA DE MEDIOS (DOMINIOS)
-# =========================
-ALLOWED_DOMAINS = {
-    # Generalistas
-    "elpais.com",
-    "elmundo.es",
-    "abc.es",
-    "20minutos.es",
-    "eldiario.es",
-    "elespanol.com",
-    "larazon.es",
-    "lavanguardia.com",
-
-    # Económicos / empresa
-    "expansion.com",
-    "cincodias.elpais.com",
-    "cincodias.com",
-    "eleconomista.es",
-    "invertia.com",
-    "elconfidencial.com",
-    "vozpopuli.com",
-    "capitalmadrid.com",
-
-    # Internacionales
-    "reuters.com",
-    "bloomberg.com",
-    "ft.com",
-    "wsj.com",
-}
-
-# Sesión HTTP para resolver redirects SOLO cuando el link sea de Google News
-_HTTP = requests.Session()
-_HTTP.headers.update({"User-Agent": "Mozilla/5.0"})
-
-
-def _netloc(url: str) -> str:
-    netloc = urlparse(url).netloc.lower()
-    if netloc.startswith("www."):
-        netloc = netloc[4:]
-    return netloc
-
-
-def resolve_final_url(url: str, timeout: int = 8) -> str:
-    """
-    Resuelve redirects SOLO cuando el link sea de Google News (news.google.com),
-    para obtener el dominio real del medio.
-    """
-    try:
-        host = _netloc(url)
-        if "news.google.com" not in host:
-            return url
-        r = _HTTP.get(url, allow_redirects=True, timeout=timeout)
-        return r.url or url
-    except Exception:
-        return url
-
-
-def is_allowed_url(url: str) -> bool:
-    final_url = resolve_final_url(url)
-    dom = _netloc(final_url)
-    return any(dom == d or dom.endswith("." + d) for d in ALLOWED_DOMAINS)
-
-
-
 
 EMAIL_REGEX = re.compile(r"^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$", re.IGNORECASE)
 
@@ -300,7 +233,7 @@ def enviar_correo(noticias: List[Dict[str, Any]], recipients: List[str]) -> None
         print(f"❌ Error enviando correo: {e}")
 
 
-if _name_ == "_main_":
+if __name__ == "__main__":
     recipients = parse_recipients(EMAIL_TO_RAW)
     validate_env(recipients)
 
