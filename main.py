@@ -68,20 +68,44 @@ PALABRAS_PROHIBIDAS = [
 # - Puedes añadir/quitar dominios aquí
 # =========================
 ALLOWED_DOMAINS = {
-    # Económicos / empresa ES
+   # Generalistas
+    "elpais.com",
+    "elmundo.es",
+    "abc.es",
+    "20minutos.es",
+    "eldiario.es",
+    "elespanol.com",
+    "larazon.es",
+    "lavanguardia.com",
+    "madridiario.es",
+    "levante-emv.com",
+    "diariodesevilla.es",
+    "elcorreo.com",
+    "elnortedecastilla.es",
+    "heraldo.es",
+    
+
+    # Económicos / empresa
     "expansion.com",
     "cincodias.elpais.com",
     "cincodias.com",
     "eleconomista.es",
-    "elconfidencial.com",
     "invertia.com",
+    "elconfidencial.com",
+    "vozpopuli.com",
+    "capitalmadrid.com",
+    "laverdad.es",
+    "diariodemallorca.es",
+    "canarias7.es",
+    "diariodenavarra.es",
+    "diariomontanes.es",
 
-    # Internacionales business
+    
+    # Internacionales
     "reuters.com",
     "bloomberg.com",
     "ft.com",
     "wsj.com",
-    "economist.com",
 }
 
 # Opcional: lista negra por si hay dominios que se cuelan por redirects raros
@@ -361,3 +385,4 @@ if __name__ == "__main__":
 
     datos = buscar_y_filtrar()
     enviar_correo(datos, recipients)
+
