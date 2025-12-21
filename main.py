@@ -34,7 +34,7 @@ CLIENTES = [
 # =========================
 # 3) PALABRAS CLAVE
 # =========================
-KEYWORDS_EXACTAS = ["IA", "ESG", "GenAI", "IoT", "PwC", "EY", "KPMG", "BCG", "IBM","NTT", "CEO", "CDAIO","CHRO","CFO", "CIO", "CTO"]
+KEYWORDS_EXACTAS = ["IA", "ESG", "GenAI", "IoT", "OPA", "PwC", "EY", "KPMG", "BCG", "IBM","NTT", "CEO", "CDAIO","CHRO","CFO", "CIO", "CTO"]
 
 KEYWORDS_GENERALES = [
     "inteligencia artificial", "big data", "alianza", "ecosistema",
@@ -238,6 +238,7 @@ if __name__ == "__main__":
 
     datos = buscar_y_filtrar()
     enviar_correo(datos, recipients)
+
 
 
 
