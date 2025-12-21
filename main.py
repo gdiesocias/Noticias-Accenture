@@ -28,7 +28,7 @@ SMTP_TIMEOUT = int(os.environ.get("SMTP_TIMEOUT", "20").strip() or 20)
 CLIENTES = [
     "Banco Sabadell", "BBVA", "CaixaBank", "Iberdrola", "Airbus",
     "Repsol", "Banco Santander", "Amadeus", "EDP", "Masorange",
-    "El Corte Inglés", "Endesa", "Mapfre", "Telefónica"
+    "El Corte Inglés", "Endesa", "Mapfre", "Telefónica", "Acciona", "Inditex"
 ]
 
 # =========================
@@ -239,4 +239,5 @@ if __name__ == "__main__":
 
     datos = buscar_y_filtrar()
     enviar_correo(datos, recipients)
+
 
