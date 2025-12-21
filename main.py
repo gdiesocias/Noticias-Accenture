@@ -27,7 +27,8 @@ SMTP_PORT = int(os.environ.get("SMTP_PORT", "587").strip() or 587)
 SMTP_TIMEOUT = int(os.environ.get("SMTP_TIMEOUT", "20").strip() or 20)
 
 # DEBUG (ponlo a 1 si quieres ver por consola por qué se acepta/rechaza una noticia)
-DEBUG_SOURCES = os.environ.get("DEBUG_SOURCES", "0").strip() == "1"
+# DEBUG_SOURCES = os.environ.get("DEBUG_SOURCES", "0").strip() == "1"
+DEBUG_SOURCES = True
 
 # =========================
 # 2) CLIENTES
@@ -385,6 +386,7 @@ if __name__ == "__main__":
 
     datos = buscar_y_filtrar()
     enviar_correo(datos, recipients)
+
 
 
 
