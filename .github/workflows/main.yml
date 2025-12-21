@@ -1,0 +1,31 @@
+name: Noticias Diarias
+
+on:
+  schedule:
+    # 18:50 UTC = 19:50 Hora España (Invierno)
+    - cron: '45 6 * * *'
+  workflow_dispatch: # Esto te deja ejecutarlo manual con un botón si quieres
+
+jobs:
+  run-agente:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v3
+
+      - name: Instalar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Instalar librerías
+        run: pip install -r requirements.txt
+
+      - name: Ejecutar Robot
+        env:
+          # Conectamos las llaves de la caja fuerte
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        run: python main.py
