@@ -87,6 +87,11 @@ ALLOWED_DOMAINS = {
     "canarias7.es",
     "diariodenavarra.es",
     "diariomontanes.es",
+    "RTVE.es",
+    "heraldo.es",
+    "ElPlural.com",
+    "Finanzas.com",
+    "eldiariocantabria.es",
 
     # Económicos / empresa
     "expansion.com",
@@ -130,6 +135,13 @@ ALLOWED_PUBLISHERS = {
     "Canarias7", "Canarias 7",
     "Diario de Navarra",
     "El Diario Montañés",
+    "El Periódico",
+    "Bolsamania",
+    "Cadena SER",
+    "COPE",
+    "Faro de Vigo",
+    "Europa Press",
+    "La Voz de Galicia",
 }
 
 BLOCKED_DOMAINS = set()
@@ -374,3 +386,4 @@ if __name__ == "__main__":
 
     datos = buscar_y_filtrar()
     enviar_correo(datos, recipients)
+
