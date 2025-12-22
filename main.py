@@ -147,6 +147,7 @@ ALLOWED_PUBLISHERS = {
     "ElPlural.com",
     "Finanzas.com",
     "eldiariocantabria.es",
+    "Infodefensa",
 }
 
 BLOCKED_DOMAINS = set()
@@ -350,7 +351,7 @@ def construir_html(noticias: List[Dict[str, Any]]) -> str:
         <div style="margin-bottom: 15px; border-left: 3px solid #2980b9; padding-left: 10px;">
             <div style="font-size: 10px; color: #e67e22; font-weight: bold;">{n.get("temas","")}</div>
             <a href="{n.get("url","")}" style="font-size: 14px; font-weight: bold; color: #333; text-decoration: none;">{n.get("titulo","")}</a>
-            <div style="font-size: 11px; color: #888;">{n.get("fuente","")} ({n.get("dominio","")}) - {n.get("fecha","N/D")}</div>
+            <div style="font-size: 11px; color: #888;">{n.get("fuente","")} - {n.get("fecha","N/D")}</div>
         </div>
         """
 
@@ -391,5 +392,6 @@ if __name__ == "__main__":
 
     datos = buscar_y_filtrar()
     enviar_correo(datos, recipients)
+
 
 
