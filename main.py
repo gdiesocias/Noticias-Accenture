@@ -142,6 +142,11 @@ ALLOWED_PUBLISHERS = {
     "Faro de Vigo",
     "Europa Press",
     "La Voz de Galicia",
+    "RTVE.es",
+    "heraldo.es",
+    "ElPlural.com",
+    "Finanzas.com",
+    "eldiariocantabria.es",
 }
 
 BLOCKED_DOMAINS = set()
@@ -386,4 +391,5 @@ if __name__ == "__main__":
 
     datos = buscar_y_filtrar()
     enviar_correo(datos, recipients)
+
 
