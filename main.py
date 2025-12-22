@@ -50,7 +50,7 @@ KEYWORDS_GENERALES = [
     "machine learning", "cloud", "ciberseguridad", "blockchain",
     "fintech", "insurtech", "renovables", "sostenibilidad",
     "regulación", "compliance", "transición energética",
-    "reskilling", "híbrido", "futuro del trabajo", "resultados", "beneficio"
+    "reskilling", "híbrido", "futuro del trabajo", "resultados", "beneficio","presidente","presidenta",
 ]
 
 # =========================
@@ -392,6 +392,7 @@ if __name__ == "__main__":
 
     datos = buscar_y_filtrar()
     enviar_correo(datos, recipients)
+
 
 
 
