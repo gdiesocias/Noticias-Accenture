@@ -84,7 +84,29 @@ ALLOWED_DOMAINS = {
     "elcorreo.com",
     "elnortedecastilla.es",
     "heraldo.es",
-    
+    "El País", "EL PAÍS",
+    "El Mundo", "EL MUNDO",
+    "ABC",
+    "20minutos",
+    "elDiario.es",
+    "EL ESPAÑOL", "El Español",
+    "La Razón",
+    "La Vanguardia",
+    "Expansión",
+    "Cinco Días",
+    "elEconomista.es", "El Economista", "elEconomista",
+    "El Confidencial",
+    "Vozpópuli", "Vozpopuli",
+    "Capital Madrid",
+    "Diario de Sevilla",
+    "Heraldo de Aragón", "Heraldo",
+    "El Norte de Castilla",
+    "El Correo",
+    "La Verdad",
+    "Diario de Mallorca",
+    "Canarias7", "Canarias 7",
+    "Diario de Navarra",
+    "El Diario Montañés",
 
     # Económicos / empresa
     "expansion.com",
@@ -253,11 +275,22 @@ def buscar_y_filtrar() -> List[Dict[str, Any]]:
                     continue
 
                 # 1) Filtro por medios (dominio real)
-                allowed, dom, final_url = allowed_by_domain(url)
-                if not allowed:
-                    debug_log(f"    ⛔ RECHAZADA (medio) dom={dom} url={final_url[:120]}")
-                    continue
-                debug_log(f"    ✅ OK (medio) dom={dom}")
+                      allowed, dom, final_url = allowed_by_domain(url)
+                      publisher = ((articulo.get("publisher") or {}).get("title") or "").strip()
+                      publisher_ok = publisher in ALLOWED_PUBLISHERS
+
+                # Si el dominio real no se puede resolver (se queda en news.google.com),
+                # usamos el publisher como fuente de verdad.
+               if dom == "news.google.com":
+               if not publisher_ok:
+                 debug_log(f"    ⛔ RECHAZADA (medio/publisher) publisher='{publisher}' url={final_url[:120]}")
+               continue
+               debug_log(f"    ✅ OK (publisher) '{publisher}' (via news.google.com)")
+                    else:
+                        if not allowed:
+                            debug_log(f"    ⛔ RECHAZADA (medio) dom={dom} publisher='{publisher}' url={final_url[:120]}")
+                            continue
+                        debug_log(f"    ✅ OK (medio) dom={dom} publisher='{publisher}'")
 
                 # 2) Texto a analizar
                 texto_analizar = (titulo + " " + descripcion).lower()
@@ -386,6 +419,7 @@ if __name__ == "__main__":
 
     datos = buscar_y_filtrar()
     enviar_correo(datos, recipients)
+
 
 
 
