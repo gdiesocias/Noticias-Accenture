@@ -35,7 +35,7 @@ DEBUG_SOURCES = True  # pon False cuando ya funcione
 CLIENTES = [
     "Banco Sabadell", "BBVA", "CaixaBank", "Iberdrola", "Airbus",
     "Repsol", "Banco Santander", "Amadeus", "EDP", "Masorange",
-    "El Corte Inglés", "Endesa", "Mapfre", "Telefónica"
+    "El Corte Inglés", "Endesa", "Mapfre", "Telefónica","Vodafone","Moeve","Ibercaja","Naturgy","Bankinter", 
 ]
 
 # =========================
@@ -392,6 +392,7 @@ if __name__ == "__main__":
 
     datos = buscar_y_filtrar()
     enviar_correo(datos, recipients)
+
 
 
 
