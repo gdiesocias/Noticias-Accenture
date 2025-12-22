@@ -333,7 +333,7 @@ def construir_html(noticias: List[Dict[str, Any]]) -> str:
     <html>
     <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
         <div style="max-width: 680px; margin: 0 auto; background-color: #ffffff; padding: 20px; border-radius: 8px;">
-            <h2 style="color: #2c3e50;">📊 Reporte Diario (Nube) - PRO</h2>
+            <h2 style="color: #2c3e50;">📊 Reporte Diario Noticias Clientes Accenture </h2>
             <p>Se han detectado <strong>{len(noticias)}</strong> noticias relevantes hoy.</p>
             <hr>
     """
@@ -392,6 +392,7 @@ if __name__ == "__main__":
 
     datos = buscar_y_filtrar()
     enviar_correo(datos, recipients)
+
 
 
 
