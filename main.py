@@ -9,7 +9,7 @@ from email.mime.multipart import MIMEMultipart
 from email.utils import formatdate, make_msgid
 from gnews import GNews
 from datetime import datetime
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Tuple
 from urllib.parse import urlparse
 from functools import lru_cache
 
@@ -20,15 +20,14 @@ import requests
 # =========================
 EMAIL_USER = os.environ.get("EMAIL_USER", "").strip()
 EMAIL_PASS = os.environ.get("EMAIL_PASS", "").strip()
-EMAIL_TO_RAW = os.environ.get("EMAIL_TO", "").strip()  # puede ser "a@a.com,b@b.com; c@c.com"
+EMAIL_TO_RAW = os.environ.get("EMAIL_TO", "").strip()
 
 SMTP_HOST = os.environ.get("SMTP_HOST", "smtp.gmail.com").strip()
 SMTP_PORT = int(os.environ.get("SMTP_PORT", "587").strip() or 587)
 SMTP_TIMEOUT = int(os.environ.get("SMTP_TIMEOUT", "20").strip() or 20)
 
-# DEBUG (ponlo a 1 si quieres ver por consola por qué se acepta/rechaza una noticia)
-# DEBUG_SOURCES = os.environ.get("DEBUG_SOURCES", "0").strip() == "1"
-DEBUG_SOURCES = True
+# DEBUG
+DEBUG_SOURCES = True  # pon False cuando ya funcione
 
 # =========================
 # 2) CLIENTES
@@ -64,12 +63,11 @@ PALABRAS_PROHIBIDAS = [
 ]
 
 # =========================
-# 5) LISTA BLANCA DE MEDIOS (PRO)
-# - Se filtra por DOMINIO REAL (resolviendo redirects de Google News)
-# - Puedes añadir/quitar dominios aquí
+# 5) WHITELISTS (SEPARADAS)
 # =========================
+# SOLO DOMINIOS AQUÍ
 ALLOWED_DOMAINS = {
-   # Generalistas
+    # Generalistas
     "elpais.com",
     "elmundo.es",
     "abc.es",
@@ -84,6 +82,31 @@ ALLOWED_DOMAINS = {
     "elcorreo.com",
     "elnortedecastilla.es",
     "heraldo.es",
+    "laverdad.es",
+    "diariodemallorca.es",
+    "canarias7.es",
+    "diariodenavarra.es",
+    "diariomontanes.es",
+
+    # Económicos / empresa
+    "expansion.com",
+    "cincodias.elpais.com",
+    "cincodias.com",
+    "eleconomista.es",
+    "invertia.com",
+    "elconfidencial.com",
+    "vozpopuli.com",
+    "capitalmadrid.com",
+
+    # Internacionales
+    "reuters.com",
+    "bloomberg.com",
+    "ft.com",
+    "wsj.com",
+}
+
+# SOLO NOMBRES DE MEDIO AQUÍ (publisher.title)
+ALLOWED_PUBLISHERS = {
     "El País", "EL PAÍS",
     "El Mundo", "EL MUNDO",
     "ABC",
@@ -107,44 +130,24 @@ ALLOWED_DOMAINS = {
     "Canarias7", "Canarias 7",
     "Diario de Navarra",
     "El Diario Montañés",
-
-    # Económicos / empresa
-    "expansion.com",
-    "cincodias.elpais.com",
-    "cincodias.com",
-    "eleconomista.es",
-    "invertia.com",
-    "elconfidencial.com",
-    "vozpopuli.com",
-    "capitalmadrid.com",
-    "laverdad.es",
-    "diariodemallorca.es",
-    "canarias7.es",
-    "diariodenavarra.es",
-    "diariomontanes.es",
-
-    
-    # Internacionales
-    "reuters.com",
-    "bloomberg.com",
-    "ft.com",
-    "wsj.com",
 }
 
-# Opcional: lista negra por si hay dominios que se cuelan por redirects raros
-BLOCKED_DOMAINS = {
-    # "facebook.com", "youtube.com"
-}
+BLOCKED_DOMAINS = set()
+
+def debug_log(msg: str) -> None:
+    if DEBUG_SOURCES:
+        print(msg)
+
+def norm(s: str) -> str:
+    return re.sub(r"\s+", " ", (s or "").strip().lower())
+
+ALLOWED_PUBLISHERS_NORM = {norm(x) for x in ALLOWED_PUBLISHERS}
 
 EMAIL_REGEX = re.compile(r"^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$", re.IGNORECASE)
 
-# HTTP session (reutilizable)
 _HTTP = requests.Session()
 _HTTP.headers.update({"User-Agent": "Mozilla/5.0"})
 
-# =========================
-# Helpers PRO: dominio + resolución + caché + logging
-# =========================
 def _netloc(url: str) -> str:
     try:
         netloc = urlparse(url).netloc.lower()
@@ -156,16 +159,13 @@ def _netloc(url: str) -> str:
 
 def _looks_like_google_redirect(url: str) -> bool:
     host = _netloc(url)
-    if not host:
-        return False
-    # gnews suele devolver news.google.com o enlaces google intermedios
     return any(x in host for x in ("news.google.com", "news.googleusercontent.com", "google.com"))
 
 @lru_cache(maxsize=5000)
 def resolve_final_url(url: str) -> str:
     """
-    Resuelve redirects SOLO cuando parece enlace intermedio de Google.
-    Cacheado para no penalizar rendimiento.
+    OJO: los enlaces /rss/articles/ NO siempre redirigen a la web final.
+    Aun así, intentamos; si no, devolvemos el propio link.
     """
     try:
         if not _looks_like_google_redirect(url):
@@ -175,54 +175,49 @@ def resolve_final_url(url: str) -> str:
     except Exception:
         return url
 
-def allowed_by_domain(url: str) -> Tuple[bool, str, str]:
+def allowed_source(articulo: Dict[str, Any]) -> Tuple[bool, str, str, str]:
     """
-    Devuelve (allowed, domain, final_url)
+    Decide si aceptar por:
+    - Si dom == news.google.com => usar publisher (porque no se puede resolver a dominio real)
+    - Si dom != news.google.com => usar dominios
+    Devuelve: (allowed, dom, final_url, publisher_raw)
     """
+    url = (articulo.get("url") or articulo.get("link") or "").strip()
+    publisher_raw = ((articulo.get("publisher") or {}).get("title") or "").strip()
+
     final_url = resolve_final_url(url)
     dom = _netloc(final_url)
 
-    if not dom:
-        return False, "", final_url
+    # Bloqueos por dominio
+    if dom and any(dom == b or dom.endswith("." + b) for b in BLOCKED_DOMAINS):
+        return False, dom, final_url, publisher_raw
 
-    if any(dom == b or dom.endswith("." + b) for b in BLOCKED_DOMAINS):
-        return False, dom, final_url
+    # Caso RSS wrapper
+    if dom == "news.google.com":
+        pub_ok = norm(publisher_raw) in ALLOWED_PUBLISHERS_NORM
+        return pub_ok, dom, final_url, publisher_raw
 
-    allowed = any(dom == a or dom.endswith("." + a) for a in ALLOWED_DOMAINS)
-    return allowed, dom, final_url
+    # Caso normal: dominio final
+    dom_ok = any(dom == a or dom.endswith("." + a) for a in ALLOWED_DOMAINS)
+    return dom_ok, dom, final_url, publisher_raw
 
-def debug_log(msg: str) -> None:
-    if DEBUG_SOURCES:
-        print(msg)
-
-# =========================
-# Parsing / Validaciones
-# =========================
 def parse_recipients(raw: str) -> List[str]:
-    """
-    Acepta una cadena con emails separados por coma o punto y coma.
-    Devuelve una lista de emails limpios y validados.
-    """
     if not raw:
         return []
     parts = re.split(r"[;,]", raw)
     emails = []
     for p in parts:
         e = p.strip()
-        if not e:
-            continue
-        if EMAIL_REGEX.match(e):
+        if e and EMAIL_REGEX.match(e):
             emails.append(e)
-        else:
-            print(f"⚠️ EMAIL_TO contiene un email inválido y se ignora: {e}")
-    # dedup conservando orden
+    # dedup
     seen = set()
-    unique = []
+    out = []
     for e in emails:
         if e not in seen:
-            unique.append(e)
+            out.append(e)
             seen.add(e)
-    return unique
+    return out
 
 def validate_env(recipients: List[str]) -> None:
     if not EMAIL_USER:
@@ -241,15 +236,6 @@ def contiene_palabra_prohibida(texto: str) -> bool:
 def es_similar(a: str, b: str) -> bool:
     return SequenceMatcher(None, a, b).ratio() > 0.65
 
-def get_article_url(articulo: Dict[str, Any]) -> str:
-    """
-    PRO: gnews puede devolver url en 'url' o 'link' según versión/feed.
-    """
-    return (articulo.get("url") or articulo.get("link") or "").strip()
-
-# =========================
-# BÚSQUEDA + FILTRO (PRO)
-# =========================
 def buscar_y_filtrar() -> List[Dict[str, Any]]:
     print(f"🚀 AGENTE NUBE (PRO): {datetime.now().strftime('%H:%M:%S')}")
     google_news = GNews(language="es", country="ES", period="1d", max_results=100)
@@ -259,55 +245,38 @@ def buscar_y_filtrar() -> List[Dict[str, Any]]:
 
     for i, cliente in enumerate(CLIENTES):
         try:
-            # Throttle para evitar rate-limits
             time.sleep(random.uniform(1.0, 2.0))
-
             print(f"[{i+1}/{len(CLIENTES)}] 🔹 {cliente}...", end="")
             resultados = google_news.get_news(cliente)
             print(f" {len(resultados)} analizadas.")
 
             for articulo in resultados:
                 titulo = (articulo.get("title") or "").strip()
-                url = (articulo.get("url") or articulo.get("link") or "").strip()
                 descripcion = articulo.get("description") or ""
-
-                if not titulo or not url:
+                if not titulo:
                     continue
 
-                # 1) Filtro por medios (dominio real)
-                      allowed, dom, final_url = allowed_by_domain(url)
-                      publisher = ((articulo.get("publisher") or {}).get("title") or "").strip()
-                      publisher_ok = publisher in ALLOWED_PUBLISHERS
+                url = (articulo.get("url") or articulo.get("link") or "").strip()
+                if not url:
+                    continue
 
-                # Si el dominio real no se puede resolver (se queda en news.google.com),
-                # usamos el publisher como fuente de verdad.
-               if dom == "news.google.com":
-               if not publisher_ok:
-                 debug_log(f"    ⛔ RECHAZADA (medio/publisher) publisher='{publisher}' url={final_url[:120]}")
-               continue
-               debug_log(f"    ✅ OK (publisher) '{publisher}' (via news.google.com)")
-                    else:
-                        if not allowed:
-                            debug_log(f"    ⛔ RECHAZADA (medio) dom={dom} publisher='{publisher}' url={final_url[:120]}")
-                            continue
-                        debug_log(f"    ✅ OK (medio) dom={dom} publisher='{publisher}'")
+                allowed, dom, final_url, publisher = allowed_source(articulo)
+                if not allowed:
+                    debug_log(f"    ⛔ RECHAZADA (medio) dom={dom} publisher='{publisher}' url={final_url[:120]}")
+                    continue
+                debug_log(f"    ✅ OK (medio) dom={dom} publisher='{publisher}'")
 
-                # 2) Texto a analizar
                 texto_analizar = (titulo + " " + descripcion).lower()
 
-                # 3) Palabras prohibidas
                 if contiene_palabra_prohibida(texto_analizar):
                     debug_log(f"    ⛔ RECHAZADA (prohibidas) '{titulo[:80]}'")
                     continue
 
-                # 4) Dedupe por similitud de título
                 if any(es_similar(titulo.lower(), t.lower()) for t in titulos_vistos):
                     debug_log(f"    ⛔ RECHAZADA (duplicada) '{titulo[:80]}'")
                     continue
 
-                # 5) Keywords
                 temas_encontrados = []
-
                 for kw in KEYWORDS_GENERALES:
                     if kw.lower() in texto_analizar:
                         temas_encontrados.append(kw)
@@ -328,9 +297,9 @@ def buscar_y_filtrar() -> List[Dict[str, Any]]:
                     "cliente": cliente,
                     "temas": temas_str,
                     "titulo": titulo,
-                    "url": final_url,  # usamos URL final del medio
+                    "url": final_url,  # si es news.google.com, será wrapper; al menos se abre en Google News
                     "fecha": articulo.get("published date", "N/D"),
-                    "fuente": (articulo.get("publisher") or {}).get("title", dom or "Google News"),
+                    "fuente": publisher or dom or "Google News",
                     "dominio": dom,
                 })
 
@@ -339,9 +308,6 @@ def buscar_y_filtrar() -> List[Dict[str, Any]]:
 
     return noticias_relevantes
 
-# =========================
-# EMAIL
-# =========================
 def construir_html(noticias: List[Dict[str, Any]]) -> str:
     noticias.sort(key=lambda x: x["cliente"])
 
@@ -354,24 +320,20 @@ def construir_html(noticias: List[Dict[str, Any]]) -> str:
             <hr>
     """
 
+    if not noticias:
+        html += "<p style='color:#888;'>No se han encontrado noticias relevantes con los filtros actuales.</p>"
+
     current_client = ""
     for n in noticias:
         if n["cliente"] != current_client:
             html += f"<h3 style='background-color: #eee; color: #333; padding: 8px; margin-top: 20px;'>{n['cliente']}</h3>"
             current_client = n["cliente"]
 
-        titulo = n["titulo"]
-        url = n["url"]
-        fuente = n.get("fuente", "Google News")
-        fecha = n.get("fecha", "N/D")
-        temas = n.get("temas", "")
-        dom = n.get("dominio", "")
-
         html += f"""
         <div style="margin-bottom: 15px; border-left: 3px solid #2980b9; padding-left: 10px;">
-            <div style="font-size: 10px; color: #e67e22; font-weight: bold;">{temas}</div>
-            <a href="{url}" style="font-size: 14px; font-weight: bold; color: #333; text-decoration: none;">{titulo}</a>
-            <div style="font-size: 11px; color: #888;">{fuente} ({dom}) - {fecha}</div>
+            <div style="font-size: 10px; color: #e67e22; font-weight: bold;">{n.get("temas","")}</div>
+            <a href="{n.get("url","")}" style="font-size: 14px; font-weight: bold; color: #333; text-decoration: none;">{n.get("titulo","")}</a>
+            <div style="font-size: 11px; color: #888;">{n.get("fuente","")} ({n.get("dominio","")}) - {n.get("fecha","N/D")}</div>
         </div>
         """
 
@@ -379,16 +341,14 @@ def construir_html(noticias: List[Dict[str, Any]]) -> str:
     return html
 
 def enviar_correo(noticias: List[Dict[str, Any]], recipients: List[str]) -> None:
+    # Enviar incluso si está vacío (para saber que el job corrió)
     if not noticias:
-        print("\n📭 Informe vacío.")
-        return
+        print("\n📭 Informe vacío (se enviará correo igualmente).")
 
     html = construir_html(noticias)
 
     msg = MIMEMultipart()
     msg["From"] = EMAIL_USER
-
-    # Para privacidad: ponemos un To "neutro" (tú mismo) y el envío real va por BCC (recipients)
     msg["To"] = EMAIL_USER
     msg["Subject"] = f"🚀 Reporte Cloud (PRO): {len(noticias)} noticias"
     msg["Date"] = formatdate(localtime=True)
@@ -402,25 +362,15 @@ def enviar_correo(noticias: List[Dict[str, Any]], recipients: List[str]) -> None
             server.starttls()
             server.ehlo()
             server.login(EMAIL_USER, EMAIL_PASS)
-
-            # Envío REAL a la lista de destinatarios (varios correos)
             server.sendmail(EMAIL_USER, recipients, msg.as_string())
 
         print(f"✅ Correo enviado a {len(recipients)} destinatario(s): {', '.join(recipients)}")
     except Exception as e:
         print(f"❌ Error enviando correo: {e}")
 
-# =========================
-# MAIN
-# =========================
 if __name__ == "__main__":
     recipients = parse_recipients(EMAIL_TO_RAW)
     validate_env(recipients)
 
     datos = buscar_y_filtrar()
     enviar_correo(datos, recipients)
-
-
-
-
-
