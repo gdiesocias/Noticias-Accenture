@@ -368,7 +368,7 @@ def enviar_correo(noticias: List[Dict[str, Any]], recipients: List[str]) -> None
     msg = MIMEMultipart()
     msg["From"] = EMAIL_USER
     msg["To"] = EMAIL_USER
-    msg["Subject"] = f"🚀 Reporte Cloud (PRO): {len(noticias)} noticias"
+    msg["Subject"] = f"🚀 Reporte Noticias: {len(noticias)} noticias"
     msg["Date"] = formatdate(localtime=True)
     msg["Message-ID"] = make_msgid(domain=None)
 
@@ -392,6 +392,7 @@ if __name__ == "__main__":
 
     datos = buscar_y_filtrar()
     enviar_correo(datos, recipients)
+
 
 
 
