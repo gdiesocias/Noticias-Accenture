@@ -4,8 +4,7 @@ on:
   schedule:
     # 08:30 España (Invierno - CET, UTC+1)
     - cron: '30 7 * * *'
-    # 08:30 España (Verano - CEST, UTC+2)
-    - cron: '30 6 * * *'
+   
   workflow_dispatch:
 
 jobs:
