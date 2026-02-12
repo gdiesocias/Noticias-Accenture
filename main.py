@@ -30,7 +30,7 @@ SMTP_TIMEOUT = int(os.environ.get("SMTP_TIMEOUT", "20").strip() or 20)
 DEBUG_SOURCES = True  # pon False cuando ya funcione
 
 # =========================
-# 2) CLIENTES
+# 2) CLIENTES Y COMPETIDORES
 # =========================
 CLIENTES = [
     "Banco Sabadell", "BBVA", "CaixaBank", "Iberdrola", "Airbus",
@@ -39,10 +39,15 @@ CLIENTES = [
     "Moeve", "Ibercaja", "Naturgy", "Bankinter",
 ]
 
+COMPETIDORES = [
+    "NTT Data", "Deloitte", "Capgemini", "Inetum", "Telefónica",
+    "Kyndryl", "EY", "DXC", "Indra", "Minsait", "KPMG", "PWC", "WPP","BCG", "Mckinsey", "IBM"
+]
+
 # =========================
 # 3) PALABRAS CLAVE
 # =========================
-KEYWORDS_EXACTAS = ["IA", "ESG", "CX", "BPM", "GenAI", "IoT", "PwC", "EY", "KPMG", "BCG", "IBM", "CEO", "OPA", "CIO", "CTO"]
+KEYWORDS_EXACTAS = ["IA", "ESG", "CX", "BPM", "GenAI", "IoT", "CEO", "CIO", "CTO"]
 
 KEYWORDS_GENERALES = [
     "inteligencia artificial", "big data", "alianza", "ecosistema",
@@ -89,7 +94,6 @@ ALLOWED_DOMAINS = {
     "diariodenavarra.es",
     "diariomontanes.es",
     "RTVE.es",
-    "heraldo.es",
     "ElPlural.com",
     "Finanzas.com",
     "eldiariocantabria.es",
@@ -99,9 +103,7 @@ ALLOWED_DOMAINS = {
     "cincodias.elpais.com",
     "cincodias.com",
     "eleconomista.es",
-    "invertia.com",
     "elconfidencial.com",
-    "vozpopuli.com",
     "capitalmadrid.com",
 
     # Internacionales
@@ -125,7 +127,6 @@ ALLOWED_PUBLISHERS = {
     "Cinco Días",
     "elEconomista.es", "El Economista", "elEconomista",
     "El Confidencial",
-    "Vozpópuli", "Vozpopuli",
     "Capital Madrid",
     "Diario de Sevilla",
     "Heraldo de Aragón", "Heraldo",
@@ -144,7 +145,6 @@ ALLOWED_PUBLISHERS = {
     "Europa Press",
     "La Voz de Galicia",
     "RTVE.es",
-    "heraldo.es",
     "ElPlural.com",
     "Finanzas.com",
     "eldiariocantabria.es",
@@ -273,18 +273,21 @@ def get_published(articulo: Dict[str, Any]) -> str:
         or "N/D"
     )
 
-def buscar_y_filtrar() -> List[Dict[str, Any]]:
-    print(f"🚀 AGENTE NUBE (PRO): {datetime.now().strftime('%H:%M:%S')}")
+def buscar_y_filtrar_entidades(entidades: List[str], tipo: str) -> List[Dict[str, Any]]:
+    """
+    Busca noticias para una lista de entidades (clientes o competidores) y devuelve una lista
+    con el campo extra 'tipo' para poder separarlas en el HTML.
+    """
     google_news = GNews(language="es", country="ES", period="1d", max_results=100)
 
     noticias_relevantes: List[Dict[str, Any]] = []
     titulos_vistos: List[str] = []
 
-    for i, cliente in enumerate(CLIENTES):
+    for i, entidad in enumerate(entidades):
         try:
             time.sleep(random.uniform(1.0, 2.0))
-            print(f"[{i+1}/{len(CLIENTES)}] 🔹 {cliente}...", end="")
-            resultados = google_news.get_news(cliente)
+            print(f"[{i+1}/{len(entidades)}] 🔹 {entidad} ({tipo})...", end="")
+            resultados = google_news.get_news(entidad)
             print(f" {len(resultados)} analizadas.")
 
             for articulo in resultados:
@@ -331,64 +334,102 @@ def buscar_y_filtrar() -> List[Dict[str, Any]]:
                 temas_str = ", ".join(sorted(set(temas_encontrados), key=str.lower)).upper()
 
                 noticias_relevantes.append({
-                    "cliente": cliente,
+                    "tipo": tipo,  # "cliente" o "competidor"
+                    "entidad": entidad,
                     "temas": temas_str,
                     "titulo": titulo,
-                    "url": final_url,  # si es news.google.com, será wrapper; al menos se abre en Google News
+                    "url": final_url,
                     "fecha": get_published(articulo),
                     "fuente": publisher or dom or "Google News",
                     "dominio": dom,
                 })
 
         except Exception as e:
-            print(f"⚠️ Error {cliente}: {e}")
+            print(f"⚠️ Error {entidad} ({tipo}): {e}")
 
     return noticias_relevantes
 
-def construir_html(noticias: List[Dict[str, Any]]) -> str:
-    noticias.sort(key=lambda x: x["cliente"])
+def construir_html(noticias_clientes: List[Dict[str, Any]], noticias_competidores: List[Dict[str, Any]]) -> str:
+    noticias_clientes.sort(key=lambda x: x["entidad"])
+    noticias_competidores.sort(key=lambda x: x["entidad"])
+
+    total = len(noticias_clientes) + len(noticias_competidores)
 
     html = f"""
     <html>
     <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
         <div style="max-width: 680px; margin: 0 auto; background-color: #ffffff; padding: 20px; border-radius: 8px;">
-            <h2 style="color: #2c3e50;">📊 Reporte Diario Noticias Clientes Accenture </h2>
-            <p>Se han detectado <strong>{len(noticias)}</strong> noticias relevantes hoy.</p>
+            <h2 style="color: #2c3e50;">📊 Reporte Diario Noticias Accenture</h2>
+            <p>Se han detectado <strong>{total}</strong> noticias relevantes hoy.</p>
             <hr>
     """
 
-    if not noticias:
-        html += "<p style='color:#888;'>No se han encontrado noticias relevantes con los filtros actuales.</p>"
+    # -------- BLOQUE CLIENTES --------
+    html += f"""
+        <h2 style="color:#2c3e50; margin-top: 10px;">🧩 Noticias de Clientes</h2>
+        <p style="color:#666; font-size:12px;">Total: <strong>{len(noticias_clientes)}</strong></p>
+        <hr>
+    """
 
-    current_client = ""
-    for n in noticias:
-        if n["cliente"] != current_client:
-            html += f"<h3 style='background-color: #eee; color: #333; padding: 8px; margin-top: 20px;'>{n['cliente']}</h3>"
-            current_client = n["cliente"]
+    if not noticias_clientes:
+        html += "<p style='color:#888;'>No se han encontrado noticias de clientes con los filtros actuales.</p>"
+    else:
+        current = ""
+        for n in noticias_clientes:
+            if n["entidad"] != current:
+                html += f"<h3 style='background-color: #eee; color: #333; padding: 8px; margin-top: 20px;'>{n['entidad']}</h3>"
+                current = n["entidad"]
 
-        html += f"""
-        <div style="margin-bottom: 15px; border-left: 3px solid #2980b9; padding-left: 10px;">
-            <div style="font-size: 10px; color: #e67e22; font-weight: bold;">{n.get("temas","")}</div>
-            <a href="{n.get("url","")}" style="font-size: 14px; font-weight: bold; color: #333; text-decoration: none;">{n.get("titulo","")}</a>
-            <div style="font-size: 11px; color: #888;">{n.get("fuente","")} - {n.get("fecha","N/D")}</div>
-        </div>
-        """
+            html += f"""
+            <div style="margin-bottom: 15px; border-left: 3px solid #2980b9; padding-left: 10px;">
+                <div style="font-size: 10px; color: #e67e22; font-weight: bold;">{n.get("temas","")}</div>
+                <a href="{n.get("url","")}" style="font-size: 14px; font-weight: bold; color: #333; text-decoration: none;">{n.get("titulo","")}</a>
+                <div style="font-size: 11px; color: #888;">{n.get("fuente","")} - {n.get("fecha","N/D")}</div>
+            </div>
+            """
+
+    # -------- BLOQUE COMPETIDORES --------
+    html += f"""
+        <hr style="margin-top: 25px;">
+        <h2 style="color:#2c3e50;">🥊 Noticias de Competidores</h2>
+        <p style="color:#666; font-size:12px;">Total: <strong>{len(noticias_competidores)}</strong></p>
+        <hr>
+    """
+
+    if not noticias_competidores:
+        html += "<p style='color:#888;'>No se han encontrado noticias de competidores con los filtros actuales.</p>"
+    else:
+        current = ""
+        for n in noticias_competidores:
+            if n["entidad"] != current:
+                html += f"<h3 style='background-color: #eee; color: #333; padding: 8px; margin-top: 20px;'>{n['entidad']}</h3>"
+                current = n["entidad"]
+
+            html += f"""
+            <div style="margin-bottom: 15px; border-left: 3px solid #8e44ad; padding-left: 10px;">
+                <div style="font-size: 10px; color: #e67e22; font-weight: bold;">{n.get("temas","")}</div>
+                <a href="{n.get("url","")}" style="font-size: 14px; font-weight: bold; color: #333; text-decoration: none;">{n.get("titulo","")}</a>
+                <div style="font-size: 11px; color: #888;">{n.get("fuente","")} - {n.get("fecha","N/D")}</div>
+            </div>
+            """
 
     html += "</div></body></html>"
     return html
 
-def enviar_correo(noticias: List[Dict[str, Any]], recipients: List[str]) -> None:
+def enviar_correo(noticias_clientes: List[Dict[str, Any]], noticias_competidores: List[Dict[str, Any]], recipients: List[str]) -> None:
     # Enviar incluso si está vacío (para saber que el job corrió)
-    if not noticias:
+    if not noticias_clientes and not noticias_competidores:
         print("\n📭 Informe vacío (se enviará correo igualmente).")
 
-    html = construir_html(noticias)
+    html = construir_html(noticias_clientes, noticias_competidores)
 
     msg = MIMEMultipart()
     msg["From"] = EMAIL_USER
     # ✅ MUST CHANGE #2: cabecera To correcta
     msg["To"] = ", ".join(recipients)
-    msg["Subject"] = f"🚀 Reporte Diario: {len(noticias)} noticias"
+
+    total = len(noticias_clientes) + len(noticias_competidores)
+    msg["Subject"] = f"🚀 Reporte Diario: {total} noticias (Clientes {len(noticias_clientes)} | Competidores {len(noticias_competidores)})"
     msg["Date"] = formatdate(localtime=True)
     msg["Message-ID"] = make_msgid(domain=None)
 
@@ -407,8 +448,14 @@ def enviar_correo(noticias: List[Dict[str, Any]], recipients: List[str]) -> None
         print(f"❌ Error enviando correo: {e}")
 
 if __name__ == "__main__":
+    print(f"🚀 AGENTE NUBE (PRO): {datetime.now().strftime('%H:%M:%S')}")
     recipients = parse_recipients(EMAIL_TO_RAW)
     validate_env(recipients)
 
-    datos = buscar_y_filtrar()
-    enviar_correo(datos, recipients)
+    # Buscar clientes y competidores
+    noticias_clientes = buscar_y_filtrar_entidades(CLIENTES, "cliente")
+    noticias_competidores = buscar_y_filtrar_entidades(COMPETIDORES, "competidor")
+
+    enviar_correo(noticias_clientes, noticias_competidores, recipients)
+
+
