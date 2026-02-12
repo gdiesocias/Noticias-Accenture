@@ -35,7 +35,8 @@ DEBUG_SOURCES = True  # pon False cuando ya funcione
 CLIENTES = [
     "Banco Sabadell", "BBVA", "CaixaBank", "Iberdrola", "Airbus",
     "Repsol", "Banco Santander", "Amadeus", "EDP", "Masorange",
-    "El Corte Inglés", "Endesa", "Mapfre", "Telefónica","Vodafone","Moeve","Ibercaja","Naturgy","Bankinter", 
+    "El Corte Inglés", "Endesa", "Mapfre", "Telefónica", "Vodafone",
+    "Moeve", "Ibercaja", "Naturgy", "Bankinter",
 ]
 
 # =========================
@@ -50,7 +51,7 @@ KEYWORDS_GENERALES = [
     "machine learning", "cloud", "ciberseguridad", "blockchain",
     "fintech", "insurtech", "renovables", "sostenibilidad",
     "regulación", "compliance", "transición energética",
-    "reskilling", "híbrido", "futuro del trabajo", "resultados", "beneficio","presidente","presidenta",
+    "reskilling", "híbrido", "futuro del trabajo", "resultados", "beneficio", "presidente", "presidenta",
 ]
 
 # =========================
@@ -151,6 +152,12 @@ ALLOWED_PUBLISHERS = {
 }
 
 BLOCKED_DOMAINS = set()
+
+# =========================
+# ✅ MUST CHANGE #1: Normalizar dominios a minúsculas
+# =========================
+ALLOWED_DOMAINS = {d.strip().lower() for d in ALLOWED_DOMAINS}
+BLOCKED_DOMAINS = {d.strip().lower() for d in BLOCKED_DOMAINS}
 
 def debug_log(msg: str) -> None:
     if DEBUG_SOURCES:
@@ -254,6 +261,18 @@ def contiene_palabra_prohibida(texto: str) -> bool:
 def es_similar(a: str, b: str) -> bool:
     return SequenceMatcher(None, a, b).ratio() > 0.65
 
+# =========================
+# ✅ MUST CHANGE #3: published date robusto
+# =========================
+def get_published(articulo: Dict[str, Any]) -> str:
+    return (
+        articulo.get("published date")
+        or articulo.get("published_date")
+        or articulo.get("pubDate")
+        or articulo.get("published")
+        or "N/D"
+    )
+
 def buscar_y_filtrar() -> List[Dict[str, Any]]:
     print(f"🚀 AGENTE NUBE (PRO): {datetime.now().strftime('%H:%M:%S')}")
     google_news = GNews(language="es", country="ES", period="1d", max_results=100)
@@ -316,7 +335,7 @@ def buscar_y_filtrar() -> List[Dict[str, Any]]:
                     "temas": temas_str,
                     "titulo": titulo,
                     "url": final_url,  # si es news.google.com, será wrapper; al menos se abre en Google News
-                    "fecha": articulo.get("published date", "N/D"),
+                    "fecha": get_published(articulo),
                     "fuente": publisher or dom or "Google News",
                     "dominio": dom,
                 })
@@ -367,7 +386,8 @@ def enviar_correo(noticias: List[Dict[str, Any]], recipients: List[str]) -> None
 
     msg = MIMEMultipart()
     msg["From"] = EMAIL_USER
-    msg["To"] = EMAIL_USER
+    # ✅ MUST CHANGE #2: cabecera To correcta
+    msg["To"] = ", ".join(recipients)
     msg["Subject"] = f"🚀 Reporte Diario: {len(noticias)} noticias"
     msg["Date"] = formatdate(localtime=True)
     msg["Message-ID"] = make_msgid(domain=None)
@@ -392,11 +412,3 @@ if __name__ == "__main__":
 
     datos = buscar_y_filtrar()
     enviar_correo(datos, recipients)
-
-
-
-
-
-
-
-
