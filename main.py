@@ -80,6 +80,13 @@ KEYWORDS_GENERALES = [
     "opex",
     "programa estratégico",
     "roadmap",
+    "alianza", "ecosistema",
+    "estrategia", "organización", "organigrama", "talento", "transformación",
+    "digitalización", "innovación", "automatización", "eficiencia",
+    "machine learning", "cloud", "ciberseguridad", "blockchain",
+    "fintech", "insurtech", "renovables", "sostenibilidad",
+    "regulación", "compliance", "transición energética",
+    "reskilling", "híbrido", "futuro del trabajo", "resultados", "beneficio", "presidente", "presidenta",
 
     # --- Tecnología core Accenture ---
     "inteligencia artificial",
@@ -554,6 +561,7 @@ if __name__ == "__main__":
     noticias_competidores = buscar_y_filtrar_entidades(COMPETIDORES, "competidor")
 
     enviar_correo(noticias_clientes, noticias_competidores, recipients)
+
 
 
 
