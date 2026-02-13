@@ -30,7 +30,7 @@ SMTP_TIMEOUT = int(os.environ.get("SMTP_TIMEOUT", "20").strip() or 20)
 DEBUG_SOURCES = True  # pon False cuando ya funcione
 
 # =========================
-# 2) CLIENTES Y COMPETIDORES
+# 2) CLIENTES, COMPETIDORES Y PARTNERS
 # =========================
 CLIENTES = [
     "Banco Sabadell", "BBVA", "CaixaBank", "Iberdrola", "Airbus",
@@ -41,13 +41,24 @@ CLIENTES = [
 
 COMPETIDORES = [
     "NTT Data", "Deloitte", "Capgemini", "Inetum", "Telefónica",
-    "Kyndryl", "EY", "DXC", "Indra", "Minsait", "KPMG", "PWC", "WPP","BCG", "Mckinsey", "IBM"
+    "Kyndryl", "EY", "DXC", "Indra", "Minsait", "KPMG", "PWC", "WPP", "BCG", "Mckinsey", 
+]
+
+PARTNERS = [
+    "Microsoft",
+    "Google",
+    "AWS",
+    "Salesforce",
+    "SAP",
+    "ServiceNow",
+    "Oracle",
+    "IBM",
+    "Databricks",
 ]
 
 # =========================
 # 3) PALABRAS CLAVE
 # =========================
-
 KEYWORDS_EXACTAS = [
     # Cargos clave (movimiento de poder)
     "CEO",
@@ -80,13 +91,6 @@ KEYWORDS_GENERALES = [
     "opex",
     "programa estratégico",
     "roadmap",
-    "alianza", "ecosistema",
-    "estrategia", "organización", "organigrama", "talento", "transformación",
-    "digitalización", "innovación", "automatización", "eficiencia",
-    "machine learning", "cloud", "ciberseguridad", "blockchain",
-    "fintech", "insurtech", "renovables", "sostenibilidad",
-    "regulación", "compliance", "transición energética",
-    "reskilling", "híbrido", "futuro del trabajo", "resultados", "beneficio", "presidente", "presidenta",
 
     # --- Tecnología core Accenture ---
     "inteligencia artificial",
@@ -163,7 +167,6 @@ KEYWORDS_GENERALES = [
     "digital factory",
 ]
 
-
 # =========================
 # 4) PALABRAS PROHIBIDAS
 # =========================
@@ -176,7 +179,6 @@ PALABRAS_PROHIBIDAS = [
 # =========================
 # 5) WHITELISTS (SEPARADAS)
 # =========================
-# SOLO DOMINIOS AQUÍ
 ALLOWED_DOMAINS = {
     # Generalistas
     "elpais.com",
@@ -218,7 +220,6 @@ ALLOWED_DOMAINS = {
     "wsj.com",
 }
 
-# SOLO NOMBRES DE MEDIO AQUÍ (publisher.title)
 ALLOWED_PUBLISHERS = {
     "El País", "EL PAÍS",
     "El Mundo", "EL MUNDO",
@@ -257,9 +258,7 @@ ALLOWED_PUBLISHERS = {
 
 BLOCKED_DOMAINS = set()
 
-# =========================
 # ✅ MUST CHANGE #1: Normalizar dominios a minúsculas
-# =========================
 ALLOWED_DOMAINS = {d.strip().lower() for d in ALLOWED_DOMAINS}
 BLOCKED_DOMAINS = {d.strip().lower() for d in BLOCKED_DOMAINS}
 
@@ -292,10 +291,6 @@ def _looks_like_google_redirect(url: str) -> bool:
 
 @lru_cache(maxsize=5000)
 def resolve_final_url(url: str) -> str:
-    """
-    OJO: los enlaces /rss/articles/ NO siempre redirigen a la web final.
-    Aun así, intentamos; si no, devolvemos el propio link.
-    """
     try:
         if not _looks_like_google_redirect(url):
             return url
@@ -305,28 +300,19 @@ def resolve_final_url(url: str) -> str:
         return url
 
 def allowed_source(articulo: Dict[str, Any]) -> Tuple[bool, str, str, str]:
-    """
-    Decide si aceptar por:
-    - Si dom == news.google.com => usar publisher (porque no se puede resolver a dominio real)
-    - Si dom != news.google.com => usar dominios
-    Devuelve: (allowed, dom, final_url, publisher_raw)
-    """
     url = (articulo.get("url") or articulo.get("link") or "").strip()
     publisher_raw = ((articulo.get("publisher") or {}).get("title") or "").strip()
 
     final_url = resolve_final_url(url)
     dom = _netloc(final_url)
 
-    # Bloqueos por dominio
     if dom and any(dom == b or dom.endswith("." + b) for b in BLOCKED_DOMAINS):
         return False, dom, final_url, publisher_raw
 
-    # Caso RSS wrapper
     if dom == "news.google.com":
         pub_ok = norm(publisher_raw) in ALLOWED_PUBLISHERS_NORM
         return pub_ok, dom, final_url, publisher_raw
 
-    # Caso normal: dominio final
     dom_ok = any(dom == a or dom.endswith("." + a) for a in ALLOWED_DOMAINS)
     return dom_ok, dom, final_url, publisher_raw
 
@@ -339,7 +325,6 @@ def parse_recipients(raw: str) -> List[str]:
         e = p.strip()
         if e and EMAIL_REGEX.match(e):
             emails.append(e)
-    # dedup
     seen = set()
     out = []
     for e in emails:
@@ -365,9 +350,7 @@ def contiene_palabra_prohibida(texto: str) -> bool:
 def es_similar(a: str, b: str) -> bool:
     return SequenceMatcher(None, a, b).ratio() > 0.65
 
-# =========================
 # ✅ MUST CHANGE #3: published date robusto
-# =========================
 def get_published(articulo: Dict[str, Any]) -> str:
     return (
         articulo.get("published date")
@@ -378,10 +361,6 @@ def get_published(articulo: Dict[str, Any]) -> str:
     )
 
 def buscar_y_filtrar_entidades(entidades: List[str], tipo: str) -> List[Dict[str, Any]]:
-    """
-    Busca noticias para una lista de entidades (clientes o competidores) y devuelve una lista
-    con el campo extra 'tipo' para poder separarlas en el HTML.
-    """
     google_news = GNews(language="es", country="ES", period="1d", max_results=100)
 
     noticias_relevantes: List[Dict[str, Any]] = []
@@ -438,7 +417,7 @@ def buscar_y_filtrar_entidades(entidades: List[str], tipo: str) -> List[Dict[str
                 temas_str = ", ".join(sorted(set(temas_encontrados), key=str.lower)).upper()
 
                 noticias_relevantes.append({
-                    "tipo": tipo,  # "cliente" o "competidor"
+                    "tipo": tipo,
                     "entidad": entidad,
                     "temas": temas_str,
                     "titulo": titulo,
@@ -453,25 +432,38 @@ def buscar_y_filtrar_entidades(entidades: List[str], tipo: str) -> List[Dict[str
 
     return noticias_relevantes
 
-def construir_html(noticias_clientes: List[Dict[str, Any]], noticias_competidores: List[Dict[str, Any]]) -> str:
+def construir_html(
+    noticias_clientes: List[Dict[str, Any]],
+    noticias_competidores: List[Dict[str, Any]],
+    noticias_partners: List[Dict[str, Any]],
+) -> str:
     noticias_clientes.sort(key=lambda x: x["entidad"])
     noticias_competidores.sort(key=lambda x: x["entidad"])
+    noticias_partners.sort(key=lambda x: x["entidad"])
 
-    total = len(noticias_clientes) + len(noticias_competidores)
+    total_clientes = len(noticias_clientes)
+    total_competidores = len(noticias_competidores)
+    total_partners = len(noticias_partners)
+    total = total_clientes + total_competidores + total_partners
 
     html = f"""
     <html>
     <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
         <div style="max-width: 680px; margin: 0 auto; background-color: #ffffff; padding: 20px; border-radius: 8px;">
             <h2 style="color: #2c3e50;">📊 Reporte Diario Noticias Accenture</h2>
-            <p>Se han detectado <strong>{total}</strong> noticias relevantes hoy.</p>
+            <p>
+                Se han detectado <strong>{total}</strong> noticias relevantes hoy
+                (<strong>Clientes:</strong> {total_clientes} |
+                 <strong>Competidores:</strong> {total_competidores} |
+                 <strong>Partners:</strong> {total_partners}).
+            </p>
             <hr>
     """
 
     # -------- BLOQUE CLIENTES --------
     html += f"""
         <h2 style="color:#2c3e50; margin-top: 10px;">🧩 Noticias de Clientes</h2>
-        <p style="color:#666; font-size:12px;">Total: <strong>{len(noticias_clientes)}</strong></p>
+        <p style="color:#666; font-size:12px;">Total: <strong>{total_clientes}</strong></p>
         <hr>
     """
 
@@ -496,7 +488,7 @@ def construir_html(noticias_clientes: List[Dict[str, Any]], noticias_competidore
     html += f"""
         <hr style="margin-top: 25px;">
         <h2 style="color:#2c3e50;">🥊 Noticias de Competidores</h2>
-        <p style="color:#666; font-size:12px;">Total: <strong>{len(noticias_competidores)}</strong></p>
+        <p style="color:#666; font-size:12px;">Total: <strong>{total_competidores}</strong></p>
         <hr>
     """
 
@@ -517,23 +509,57 @@ def construir_html(noticias_clientes: List[Dict[str, Any]], noticias_competidore
             </div>
             """
 
+    # -------- BLOQUE PARTNERS --------
+    html += f"""
+        <hr style="margin-top: 25px;">
+        <h2 style="color:#2c3e50;">🤝 Noticias de Partners</h2>
+        <p style="color:#666; font-size:12px;">Total: <strong>{total_partners}</strong></p>
+        <hr>
+    """
+
+    if not noticias_partners:
+        html += "<p style='color:#888;'>No se han encontrado noticias de partners con los filtros actuales.</p>"
+    else:
+        current = ""
+        for n in noticias_partners:
+            if n["entidad"] != current:
+                html += f"<h3 style='background-color: #eee; color: #333; padding: 8px; margin-top: 20px;'>{n['entidad']}</h3>"
+                current = n["entidad"]
+
+            html += f"""
+            <div style="margin-bottom: 15px; border-left: 3px solid #16a085; padding-left: 10px;">
+                <div style="font-size: 10px; color: #e67e22; font-weight: bold;">{n.get("temas","")}</div>
+                <a href="{n.get("url","")}" style="font-size: 14px; font-weight: bold; color: #333; text-decoration: none;">{n.get("titulo","")}</a>
+                <div style="font-size: 11px; color: #888;">{n.get("fuente","")} - {n.get("fecha","N/D")}</div>
+            </div>
+            """
+
     html += "</div></body></html>"
     return html
 
-def enviar_correo(noticias_clientes: List[Dict[str, Any]], noticias_competidores: List[Dict[str, Any]], recipients: List[str]) -> None:
-    # Enviar incluso si está vacío (para saber que el job corrió)
-    if not noticias_clientes and not noticias_competidores:
+def enviar_correo(
+    noticias_clientes: List[Dict[str, Any]],
+    noticias_competidores: List[Dict[str, Any]],
+    noticias_partners: List[Dict[str, Any]],
+    recipients: List[str]
+) -> None:
+    if not noticias_clientes and not noticias_competidores and not noticias_partners:
         print("\n📭 Informe vacío (se enviará correo igualmente).")
 
-    html = construir_html(noticias_clientes, noticias_competidores)
+    html = construir_html(noticias_clientes, noticias_competidores, noticias_partners)
 
     msg = MIMEMultipart()
     msg["From"] = EMAIL_USER
     # ✅ MUST CHANGE #2: cabecera To correcta
     msg["To"] = ", ".join(recipients)
 
-    total = len(noticias_clientes) + len(noticias_competidores)
-    msg["Subject"] = f"🚀 Reporte Diario: {total} noticias (Clientes {len(noticias_clientes)} | Competidores {len(noticias_competidores)})"
+    total = len(noticias_clientes) + len(noticias_competidores) + len(noticias_partners)
+    msg["Subject"] = (
+        f"🚀 Reporte Diario: {total} noticias "
+        f"(Clientes {len(noticias_clientes)} | "
+        f"Competidores {len(noticias_competidores)} | "
+        f"Partners {len(noticias_partners)})"
+    )
     msg["Date"] = formatdate(localtime=True)
     msg["Message-ID"] = make_msgid(domain=None)
 
@@ -556,13 +582,8 @@ if __name__ == "__main__":
     recipients = parse_recipients(EMAIL_TO_RAW)
     validate_env(recipients)
 
-    # Buscar clientes y competidores
     noticias_clientes = buscar_y_filtrar_entidades(CLIENTES, "cliente")
     noticias_competidores = buscar_y_filtrar_entidades(COMPETIDORES, "competidor")
+    noticias_partners = buscar_y_filtrar_entidades(PARTNERS, "partner")
 
-    enviar_correo(noticias_clientes, noticias_competidores, recipients)
-
-
-
-
-
+    enviar_correo(noticias_clientes, noticias_competidores, noticias_partners, recipients)
