@@ -47,7 +47,20 @@ COMPETIDORES = [
 # =========================
 # 3) PALABRAS CLAVE
 # =========================
-KEYWORDS_EXACTAS = ["IA", "ESG", "CX", "BPM", "GenAI", "IoT", "CEO", "CIO", "CTO"]
+
+KEYWORDS_EXACTAS = [
+    # Cargos clave (movimiento de poder)
+    "CEO",
+    "CIO",
+    "CTO",
+
+    # Tecnología core estratégica
+    "ERP",
+    "SAP",
+    "RPA",
+    "IPO",
+    "OPA"
+]
 
 KEYWORDS_GENERALES = [
     # --- Inversión / Oportunidad ---
@@ -541,6 +554,7 @@ if __name__ == "__main__":
     noticias_competidores = buscar_y_filtrar_entidades(COMPETIDORES, "competidor")
 
     enviar_correo(noticias_clientes, noticias_competidores, recipients)
+
 
 
 
