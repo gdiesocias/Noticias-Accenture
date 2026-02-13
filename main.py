@@ -50,14 +50,99 @@ COMPETIDORES = [
 KEYWORDS_EXACTAS = ["IA", "ESG", "CX", "BPM", "GenAI", "IoT", "CEO", "CIO", "CTO"]
 
 KEYWORDS_GENERALES = [
-    "inteligencia artificial", "big data", "alianza", "ecosistema",
-    "estrategia", "organización", "organigrama", "talento", "transformación",
-    "digitalización", "innovación", "automatización", "eficiencia",
-    "machine learning", "cloud", "ciberseguridad", "blockchain",
-    "fintech", "insurtech", "renovables", "sostenibilidad",
-    "regulación", "compliance", "transición energética",
-    "reskilling", "híbrido", "futuro del trabajo", "resultados", "beneficio", "presidente", "presidenta",
+    # --- Inversión / Oportunidad ---
+    "inversión",
+    "licita",
+    "licitación",
+    "adjudica",
+    "adjudicación",
+    "contrato",
+    "acuerdo marco",
+    "concurso público",
+    "pliego",
+    "plan estratégico",
+    "plan de transformación",
+    "presupuesto",
+    "capex",
+    "opex",
+    "programa estratégico",
+    "roadmap",
+
+    # --- Tecnología core Accenture ---
+    "inteligencia artificial",
+    "big data",
+    "data platform",
+    "data governance",
+    "modernización",
+    "core bancario",
+    "erp",
+    "sap",
+    "s/4hana",
+    "salesforce",
+    "servicenow",
+    "oracle",
+    "migración",
+    "automatización",
+    "automatización inteligente",
+    "rpa",
+    "hyperautomation",
+    "low code",
+    "arquitectura",
+    "plataforma digital",
+    "cloud",
+    "ciberseguridad",
+    "blockchain",
+    "machine learning",
+
+    # --- Organización / Movimiento ejecutivo ---
+    "nuevo ceo",
+    "nuevo cio",
+    "nuevo cto",
+    "nombramiento",
+    "relevo",
+    "cese",
+    "reestructuración",
+    "cambio organizativo",
+    "dirección digital",
+    "dirección de tecnología",
+    "transformación organizativa",
+
+    # --- ESG / Regulación ---
+    "esg",
+    "csrd",
+    "taxonomía europea",
+    "reporting esg",
+    "descarbonización",
+    "huella de carbono",
+    "eficiencia energética",
+    "hidrógeno",
+    "movilidad eléctrica",
+    "regulación",
+    "normativa",
+    "dora",
+    "basel iii",
+
+    # --- Alianzas ---
+    "alianza estratégica",
+    "joint venture",
+    "colaboración",
+    "partnership",
+    "acuerdo tecnológico",
+    "selecciona a",
+    "elige a",
+    "implementará",
+    "implantará",
+
+    # --- Modelo operativo ---
+    "outsourcing",
+    "bpo",
+    "managed services",
+    "centro de excelencia",
+    "coe",
+    "hub tecnológico",
+    "digital factory",
 ]
+
 
 # =========================
 # 4) PALABRAS PROHIBIDAS
@@ -138,7 +223,6 @@ ALLOWED_PUBLISHERS = {
     "Diario de Navarra",
     "El Diario Montañés",
     "El Periódico",
-    "Bolsamania",
     "Cadena SER",
     "COPE",
     "Faro de Vigo",
@@ -457,5 +541,6 @@ if __name__ == "__main__":
     noticias_competidores = buscar_y_filtrar_entidades(COMPETIDORES, "competidor")
 
     enviar_correo(noticias_clientes, noticias_competidores, recipients)
+
 
 
