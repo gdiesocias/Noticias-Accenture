@@ -38,7 +38,7 @@ CLIENTES = [
     "El Corte Inglés", "Endesa", "Mapfre", "Telefónica", "Vodafone",
     "Moeve", "Ibercaja", "Naturgy", "Bankinter", "Red Eléctrica", "Redeia",
     "Antonio Puig", "Inditex", "Gestamp", "Mutua Madrileña", "Ferrovial", 
-    "Unicaja", "Antolin", "Mahou", "Kutxabank", "Grupo Planeta", "Altice",
+    "Unicaja", "Antolin", "Mahou", "Kutxabank", "Altice",
     "Acciona", "Galp", "Navantia",
 ]
 
@@ -708,4 +708,5 @@ if __name__ == "__main__":
     noticias_partners = buscar_y_filtrar_entidades(PARTNERS, "partner")
 
     enviar_correo(noticias_clientes, noticias_competidores, noticias_partners, recipients)
+
 
