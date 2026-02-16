@@ -148,6 +148,9 @@ KEYWORDS_GENERALES = [
     "desarrollará",
 
     # --- Tecnología core Accenture ---
+    "ChatGPT",
+    "OpenAI",
+    "Gemini",
     "inteligencia artificial",
     "ia generativa",
     "inteligencia generativa",
@@ -708,5 +711,6 @@ if __name__ == "__main__":
     noticias_partners = buscar_y_filtrar_entidades(PARTNERS, "partner")
 
     enviar_correo(noticias_clientes, noticias_competidores, noticias_partners, recipients)
+
 
 
