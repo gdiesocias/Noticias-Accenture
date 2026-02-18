@@ -43,7 +43,7 @@ CLIENTES = [
 ]
 
 COMPETIDORES = [
-    "NTT Data", "Deloitte", "Capgemini", "Inetum", "Telefónica",
+    "NTT Data", "Deloitte", "Capgemini", "Inetum",
     "Kyndryl", "EY", "DXC", "Indra", "Minsait", "KPMG", "PWC", "WPP", "BCG", "Mckinsey", 
 ]
 
@@ -711,6 +711,7 @@ if __name__ == "__main__":
     noticias_partners = buscar_y_filtrar_entidades(PARTNERS, "partner")
 
     enviar_correo(noticias_clientes, noticias_competidores, noticias_partners, recipients)
+
 
 
 
